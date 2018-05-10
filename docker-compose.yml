@@ -1,0 +1,14 @@
+api:
+    build: api
+    links:
+        - redis
+
+nginx:
+    build: nginx
+    ports:
+        - "8080:80"
+    links:
+        - api
+
+redis:
+    build: redis
