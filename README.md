@@ -17,7 +17,7 @@ The setup consists of 3 containers:
 All 3 containers are based respectively on the official docker images of python:2.7.15, Redis and nginx.
 
 
-##### Setup
+#### Setup
 We just need to build the images and run them using `docker-compose`:
 
 ```
@@ -29,7 +29,7 @@ A head over `http://localhost:8080` should show the following message on the web
 `Welcome to the digits OCR Keras REST API`
 
 
-##### Example
+#### Example
 We can try to submit `POST` requests to the API on the `/predict` entry point:
 
 `$ curl -X POST -F image=@4.jpg 'http://localhost:8080/predict'`
