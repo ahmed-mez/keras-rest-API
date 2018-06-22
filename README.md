@@ -3,7 +3,7 @@ A scalable Flask API to interact with a pre-trained Keras model.
 
 ### Overview
 The API uses Redis for queuing requests, batch them and feed them to the model to predict the classes then responds the client with a JSON containing the result of his request (classes with top probabilities).
-In order to support heavy load and multiple model syndrome, the model load and prediction, and the receiving/sending requests run independently of each other on different processes.
+In order to support heavy load and to avoid multiple model syndrome, the model load and prediction, and the receiving/sending requests run independently of each other on different processes.
 
 
 Please note that the model used in this project (which is a simple digit recognition OCR model) is just an example, as the main purpose of the project is the development and deployment of the API.
