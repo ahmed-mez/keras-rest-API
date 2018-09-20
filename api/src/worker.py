@@ -1,12 +1,12 @@
 from config import (IMAGE_SHAPE, IMAGE_QUEUE, BATCH_SIZE,
                       WORKER_SLEEP, REDIS_HOST, REDIS_PORT, REDIS_DB,
                       WEIGHTS_JSON, WEIGHTS_H5)
+from numpy import argpartition, argsort, vstack
 from keras.models import model_from_json
 from utils import b64_decoding
 from redis import StrictRedis
-import numpy as np
-import time
 import json
+import time
 
 db = StrictRedis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
 
@@ -33,8 +33,8 @@ def decode_predictions(predictions, top=3):
     """
     preds, batch_preds = [], []
     for pred in predictions:
-        indexes = np.argpartition(pred, -top)[-top:]
-        indexes = indexes[np.argsort(-pred[indexes])]
+        indexes = argpartition(pred, -top)[-top:]
+        indexes = indexes[argsort(-pred[indexes])]
         for i in xrange(top):
             preds.append((indexes[i], pred[indexes[i]]))
         batch_preds.append(preds)
@@ -56,7 +56,7 @@ def predict_process():
             if batch is None:
                 batch = image
             else:
-                batch = np.vstack([batch, image])
+                batch = vstack([batch, image])
             image_IDs.append(q["im_id"])
         if len(image_IDs):
             # queue contains images to be processed

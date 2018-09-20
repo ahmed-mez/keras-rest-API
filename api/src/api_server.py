@@ -1,17 +1,17 @@
 from config import (REDIS_HOST, REDIS_PORT, REDIS_DB,
                       IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_QUEUE,
                       CONSUMER_SLEEP)
+from flask import Flask, request, jsonify
 from PIL import Image, ImageFilter
+from numpy import array, newaxis
 from utils import b64_encoding
 from redis import StrictRedis
-import numpy as np
-import flask
-import uuid
-import time
+from io import BytesIO
+from uuid import uuid4
 import json
-import io
+import time
 
-app = flask.Flask(__name__)
+app = Flask(__name__)
 db = StrictRedis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
 
 def prepare_image(image):
@@ -24,7 +24,7 @@ def prepare_image(image):
     Returns:
         Numpy array
     """
-    im = Image.open(io.BytesIO(image)).convert('L')
+    im = Image.open(BytesIO(image)).convert('L')
     width = float(im.size[0])
     height = float(im.size[1])
     newImage = Image.new('L', (IMAGE_WIDTH, IMAGE_HEIGHT), (255))
@@ -44,7 +44,7 @@ def prepare_image(image):
         newImage.paste(img, (wleft, 4))
     tv = list(newImage.getdata())
     tva = [(255 - x) * 1.0 / 255.0 for x in tv]
-    return np.array(tva)[np.newaxis].copy(order="C")
+    return array(tva)[newaxis].copy(order="C")
 
 @app.route("/")
 def index():
@@ -53,14 +53,14 @@ def index():
 @app.route("/predict", methods=["POST"])
 def predict():
     data = {"success": False}
-    if flask.request.method == "POST":
-        if flask.request.files.get("image"):
-            image = flask.request.files["image"].read()
+    if request.method == "POST":
+        if request.files.get("image"):
+            image = request.files["image"].read()
             try:
                 image = prepare_image(image)
             except Exception:
                 raise
-            im_id = str(uuid.uuid4())
+            im_id = str(uuid4())
             im_dict = {"im_id": im_id, "image": b64_encoding(image)}
             # send image to the redis queue
             db.rpush(IMAGE_QUEUE, json.dumps(im_dict))
@@ -76,10 +76,10 @@ def predict():
                     except Exception:
                         raise
                     break
-                time.sleep(CLIENT_SLEEP)
+                time.sleep(CONSUMER_SLEEP)
             data["success"] = True
-            return flask.jsonify(data), 200
-    return flask.jsonify(data), 400
+            return jsonify(data), 200
+    return jsonify(data), 400
 
 if __name__ == "__main__":
 	app.run(host='0.0.0.0', debug=True)
