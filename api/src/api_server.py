@@ -1,22 +1,30 @@
-from PIL import Image, ImageFilter
 from config import (REDIS_HOST, REDIS_PORT, REDIS_DB,
                       IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_QUEUE,
-                      CLIENT_SLEEP)
+                      CONSUMER_SLEEP)
+from PIL import Image, ImageFilter
+from utils import b64_encoding
+from redis import StrictRedis
 import numpy as np
-import utils
 import flask
-import redis
 import uuid
 import time
 import json
 import io
 
 app = flask.Flask(__name__)
-db = redis.StrictRedis(host=REDIS_HOST,
-    port=REDIS_PORT, db=REDIS_DB)
+db = StrictRedis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
 
 def prepare_image(image):
-    im = image.convert('L')
+    """ Prepare image to be processed
+    Convert image and adapt its size to be processed by the OCR model.
+
+    Arguments:
+        image: file -- image to be prepared and processed by the api
+
+    Returns:
+        Numpy array
+    """
+    im = Image.open(io.BytesIO(image)).convert('L')
     width = float(im.size[0])
     height = float(im.size[1])
     newImage = Image.new('L', (IMAGE_WIDTH, IMAGE_HEIGHT), (255))
@@ -36,7 +44,7 @@ def prepare_image(image):
         newImage.paste(img, (wleft, 4))
     tv = list(newImage.getdata())
     tva = [(255 - x) * 1.0 / 255.0 for x in tv]
-    return np.array(tva)[np.newaxis]
+    return np.array(tva)[np.newaxis].copy(order="C")
 
 @app.route("/")
 def index():
@@ -48,22 +56,30 @@ def predict():
     if flask.request.method == "POST":
         if flask.request.files.get("image"):
             image = flask.request.files["image"].read()
-            image = Image.open(io.BytesIO(image))
-            image = prepare_image(image)
-            image = image.copy(order="C")
+            try:
+                image = prepare_image(image)
+            except Exception:
+                raise
             im_id = str(uuid.uuid4())
-            im_dict = {"id": im_id, "image": utils.b64_encoding(image)}
+            im_dict = {"im_id": im_id, "image": b64_encoding(image)}
+            # send image to the redis queue
             db.rpush(IMAGE_QUEUE, json.dumps(im_dict))
             while True:
+                # start polling
                 output = db.get(im_id)
                 if output is not None:
-                    output = output.decode("utf-8")
-                    data["predictions"] = json.loads(output)
-                    db.delete(im_id)
+                    # image processed, try to get predictions
+                    try:
+                        output = output.decode("utf-8")
+                        data["predictions"] = json.loads(output)
+                        db.delete(im_id)
+                    except Exception:
+                        raise
                     break
                 time.sleep(CLIENT_SLEEP)
             data["success"] = True
-    return flask.jsonify(data)
+            return flask.jsonify(data), 200
+    return flask.jsonify(data), 400
 
 if __name__ == "__main__":
 	app.run(host='0.0.0.0', debug=True)
