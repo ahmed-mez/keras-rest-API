@@ -1,20 +1,22 @@
 from keras.models import model_from_json
+from config import (IMAGE_SHAPE, IMAGE_QUEUE, BATCH_SIZE,
+                      SERVER_SLEEP, REDIS_HOST, REDIS_PORT, REDIS_DB,
+                      WEIGHTS_JSON, WEIGHTS_H5)
 import numpy as np
-import settings
 import utils
 import redis
 import time
 import json
 
-db = redis.StrictRedis(host=settings.REDIS_HOST,
-	port=settings.REDIS_PORT, db=settings.REDIS_DB)
+db = redis.StrictRedis(host=REDIS_HOST,
+	port=REDIS_PORT, db=REDIS_DB)
 
 def load_model():
-    json_file = open('trained_model/trained_model.json', 'r')
+    json_file = open(WEIGHTS_JSON, 'r')
     loaded_model_json = json_file.read()
     json_file.close()
     model = model_from_json(loaded_model_json)
-    model.load_weights("trained_model/trained_model.h5")
+    model.load_weights(WEIGHTS_H5)
     return model
 
 def decode_predictions(predictions, top=3):
@@ -32,12 +34,12 @@ def decode_predictions(predictions, top=3):
 def predict_process():
     model = load_model()
     while True:
-        queue = db.lrange(settings.IMAGE_QUEUE, 0, settings.BATCH_SIZE -1)
+        queue = db.lrange(IMAGE_QUEUE, 0, BATCH_SIZE -1)
         image_IDs = []
         batch = None
         for q in queue:
             q = json.loads(q.decode("utf-8"))
-            image = utils.b64_decoding(q["image"], (settings.IMAGE_SHAPE,))
+            image = utils.b64_decoding(q["image"], (IMAGE_SHAPE,))
             if batch is None:
                 batch = image
             else:
@@ -52,8 +54,8 @@ def predict_process():
                     res = {"label": str(label), "probability": float(prob)}
                     output.append(res)
                 db.set(image_id, json.dumps(output))
-            db.ltrim(settings.IMAGE_QUEUE, len(image_IDs), -1)
-        time.sleep(settings.SERVER_SLEEP)
+            db.ltrim(IMAGE_QUEUE, len(image_IDs), -1)
+        time.sleep(SERVER_SLEEP)
 
 if __name__ == "__main__":
     predict_process()

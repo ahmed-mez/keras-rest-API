@@ -1,6 +1,8 @@
 from PIL import Image, ImageFilter
+from config import (REDIS_HOST, REDIS_PORT, REDIS_DB,
+                      IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_QUEUE,
+                      CLIENT_SLEEP)
 import numpy as np
-import settings
 import utils
 import flask
 import redis
@@ -10,12 +12,10 @@ import json
 import io
 
 app = flask.Flask(__name__)
-db = redis.StrictRedis(host=settings.REDIS_HOST,
-    port=settings.REDIS_PORT, db=settings.REDIS_DB)
+db = redis.StrictRedis(host=REDIS_HOST,
+    port=REDIS_PORT, db=REDIS_DB)
 
 def prepare_image(image):
-    IMAGE_WIDTH = settings.IMAGE_WIDTH
-    IMAGE_HEIGHT = settings.IMAGE_HEIGHT
     im = image.convert('L')
     width = float(im.size[0])
     height = float(im.size[1])
@@ -53,7 +53,7 @@ def predict():
             image = image.copy(order="C")
             im_id = str(uuid.uuid4())
             im_dict = {"id": im_id, "image": utils.b64_encoding(image)}
-            db.rpush(settings.IMAGE_QUEUE, json.dumps(im_dict))
+            db.rpush(IMAGE_QUEUE, json.dumps(im_dict))
             while True:
                 output = db.get(im_id)
                 if output is not None:
@@ -61,7 +61,7 @@ def predict():
                     data["predictions"] = json.loads(output)
                     db.delete(im_id)
                     break
-                time.sleep(settings.CLIENT_SLEEP)
+                time.sleep(CLIENT_SLEEP)
             data["success"] = True
     return flask.jsonify(data)
 

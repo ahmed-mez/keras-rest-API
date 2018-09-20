@@ -13,3 +13,7 @@ CLIENT_SLEEP = 0.25
 REDIS_HOST = "redis"
 REDIS_PORT = 6379
 REDIS_DB = 0
+
+# weights files
+WEIGHTS_JSON = "/api/trained_model/trained_model.json"
+WEIGHTS_H5 = "/api/trained_model/trained_model.h5"
