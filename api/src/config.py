@@ -17,3 +17,6 @@ REDIS_DB = 0
 # weights files
 WEIGHTS_JSON = "/api/trained_model/trained_model.json"
 WEIGHTS_H5 = "/api/trained_model/trained_model.h5"
+
+# logging location
+LOG_DIR = "/api/logs"

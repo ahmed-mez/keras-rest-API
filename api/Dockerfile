@@ -21,6 +21,8 @@ COPY uwsgi.ini /etc/uwsgi/apps-available/api.ini
 # code 
 COPY src /api/src
 
+# logs folder
+RUN mkdir logs
 
 # entrypoint
 COPY docker-entrypoint.sh /

@@ -1,6 +1,6 @@
 from config import (REDIS_HOST, REDIS_PORT, REDIS_DB,
                       IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_QUEUE,
-                      CONSUMER_SLEEP)
+                      CONSUMER_SLEEP, LOG_DIR)
 from flask import Flask, request, jsonify
 from PIL import Image, ImageFilter
 from numpy import array, newaxis
@@ -14,7 +14,8 @@ import time
 
 app = Flask(__name__)
 db = StrictRedis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
-logging.basicConfig(filename='../api.log', level=logging.INFO)
+logging.basicConfig(filename=LOG_DIR+"/api.log", level=logging.INFO)
+
 
 def prepare_image(image):
     """ Prepare image to be processed

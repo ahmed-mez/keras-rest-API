@@ -1,14 +1,17 @@
 from config import (IMAGE_SHAPE, IMAGE_QUEUE, BATCH_SIZE,
                       WORKER_SLEEP, REDIS_HOST, REDIS_PORT, REDIS_DB,
-                      WEIGHTS_JSON, WEIGHTS_H5)
+                      WEIGHTS_JSON, WEIGHTS_H5, LOG_DIR)
 from numpy import argpartition, argsort, vstack
 from keras.models import model_from_json
 from utils import b64_decoding
 from redis import StrictRedis
+import logging
 import json
 import time
 
 db = StrictRedis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
+logging.basicConfig(filename=LOG_DIR+"/worker.log", level=logging.INFO)
+
 
 def load_model():
     """ Load the keras model in memory
@@ -45,6 +48,8 @@ def predict_process():
     """ Worker process, load model and poll for images
     """
     model = load_model()
+    assert model is not None
+    logging.info("Model loaded successfully, start polling for images")
     while True:
         # start polling
         queue = db.lrange(IMAGE_QUEUE, 0, BATCH_SIZE -1)
@@ -63,16 +68,20 @@ def predict_process():
             try:
                 preds = model.predict(batch)
                 results = decode_predictions(preds)
+                logging.info("Batch predicted successfully with images ids: %s", image_IDs)
             except Exception:
+                logging.exception("Error in prediction, batch with images ids: %s", image_IDs)
                 raise
             for (image_id, result_set) in zip (image_IDs, results):
                 output = []
                 for (label, prob) in result_set:
                     res = {"label": str(label), "probability": float(prob)}
                     output.append(res)
+                logging.info("Setting predictions in queue for image with id: %s", image_id)
                 db.set(image_id, json.dumps(output))
             db.ltrim(IMAGE_QUEUE, len(image_IDs), -1)
         time.sleep(WORKER_SLEEP)
 
 if __name__ == "__main__":
+    logging.info("Starting process..")
     predict_process()
