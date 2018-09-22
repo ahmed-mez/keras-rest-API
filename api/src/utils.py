@@ -1,8 +1,8 @@
-import numpy as np
-import base64
+from numpy import frombuffer, newaxis
+from base64 import b64encode, b64decode
 
 def b64_encoding(array):
-    return base64.b64encode(array).decode("utf-8")
+    return b64encode(array).decode("utf-8")
 
 def b64_decoding(enc_array, shape):
-    return np.frombuffer(base64.b64decode(enc_array)).reshape(shape)[np.newaxis]
+    return frombuffer(b64decode(enc_array)).reshape(shape)[newaxis]
