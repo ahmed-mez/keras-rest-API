@@ -31,20 +31,19 @@ def decode_predictions(predictions, top=3):
     
     Arguments:
         predictions [[float]] -- predictions made by the model
-    Returns:
-        [[float]] -- sorted result 
+    Yields:
+        generator([float]) -- sorted result
     """
-    preds, batch_preds = [], []
     for pred in predictions:
         indexes = argpartition(pred, -top)[-top:]
         indexes = indexes[argsort(-pred[indexes])]
+        preds = list()
         for i in xrange(top):
             preds.append((indexes[i], pred[indexes[i]]))
-        batch_preds.append(preds)
-        preds = []
-    return batch_preds
+        yield preds
 
-def predict_process():
+
+def predict_process(target_shape=IMAGE_SHAPE):
     """ Worker process, load model and poll for images
     """
     model = load_model()
@@ -57,7 +56,7 @@ def predict_process():
         batch = None
         for q in queue:
             q = json.loads(q.decode("utf-8"))
-            image = b64_decoding(q["image"], (IMAGE_SHAPE,))
+            image = b64_decoding(q["image"], (target_shape,))
             if batch is None:
                 batch = image
             else:
