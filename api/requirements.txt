@@ -26,6 +26,6 @@ redis==2.10.6
 scipy==1.1.0
 six==1.11.0
 tensorboard==1.8.0
-tensorflow==1.8.0
+tensorflow==1.15.2
 termcolor==1.1.0
 Werkzeug==0.14.1
