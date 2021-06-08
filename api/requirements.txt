@@ -19,7 +19,7 @@ MarkupSafe==1.0
 mock==2.0.0
 numpy==1.14.3
 pbr==4.0.2
-Pillow==5.1.0
+Pillow==8.2.0
 protobuf==3.5.2.post1
 PyYAML==3.12
 redis==2.10.6
